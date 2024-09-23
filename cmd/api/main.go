@@ -1,7 +1,9 @@
 package main
 
 import (
+	"TouchySarun/chp_order_backend/internal/firestore"
 	"TouchySarun/chp_order_backend/internal/handlers"
+	"TouchySarun/chp_order_backend/internal/middleware"
 	"log"
 	"net/http"
 	"os"
@@ -10,16 +12,9 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// Middleware to log each incoming request
-func loggingMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("%s %s %s", r.Method, r.RequestURI, r.RemoteAddr)
-		next.ServeHTTP(w, r)
-	})
-}
-
 // Function to define routes
 func registerRoutes(router *mux.Router) {
+	router.HandleFunc("/api/users/{id}", handlers.GetUserById).Methods("GET") // 
 	router.HandleFunc("/api/users", handlers.GetUsers).Methods("GET") // Get all users
 	router.HandleFunc("/api/users", handlers.CreateUser).Methods("POST") // Create user {body: {username, password}}
 	// router.HandleFunc("/api/orders/create-data/{barcode}/{branch}", handlers.GetCreateOrderData).Methods("GET") // Get create order data
@@ -32,18 +27,6 @@ func registerRoutes(router *mux.Router) {
 	// router.HandleFunc("/api/shipping/temp", handlers.GetTempShipping).Methods("GET") // Get temp shipping
 }
 
-// Middleware for unified error handling
-func recoverMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			if err := recover(); err != nil {
-				log.Printf("Recovered from panic: %v", err)
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			}
-		}()
-		next.ServeHTTP(w, r)
-	})
-}
 
 func main() {
 	// Load environment variables
@@ -51,6 +34,10 @@ func main() {
 	if err != nil {
 		log.Println("No .env file found")
 	}
+
+	// Set up firestore
+	firestore.InitFirestore()
+	defer firestore.Client.Close()
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -65,8 +52,8 @@ func main() {
 	registerRoutes(router)
 
 	// Add middleware
-	router.Use(loggingMiddleware) // Log every request
-	router.Use(recoverMiddleware) // Handle panics and recover gracefully
+	router.Use(middleware.LoggingMiddleware) // Log every request
+	router.Use(middleware.RecoverMiddleware) // Handle panics and recover gracefully
 
 	// Start server
 	log.Fatal(http.ListenAndServe(":"+port, router))

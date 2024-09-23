@@ -5,6 +5,9 @@ import (
 	"net/http"
 
 	"TouchySarun/chp_order_backend/internal/models"
+	"TouchySarun/chp_order_backend/internal/services"
+
+	"github.com/gorilla/mux"
 )
 
 func GetUsers(w http.ResponseWriter, r *http.Request) {
@@ -20,6 +23,23 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
     
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(users)
+}
+
+func GetUserById(w http.ResponseWriter, r *http.Request) {
+	userId := mux.Vars(r)["id"]
+
+	ctx := r.Context()
+	userData, err := services.GetUser(ctx, userId)
+	if err != nil {
+		http.Error(w, "User not found.", http.StatusNotFound)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(userData); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
