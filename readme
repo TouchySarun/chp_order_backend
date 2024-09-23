@@ -1,0 +1,13 @@
+/cmd/api
+
+- entry point
+  /internal
+- core logic
+  -/handlers : handle http request
+  -/models : structs, type
+  -/services : logic
+  -/repositories : data access
+  -/middleware : function run before request handlers
+  /config
+  /docs
+  /tests
