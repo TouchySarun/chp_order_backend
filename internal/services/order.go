@@ -8,6 +8,8 @@ import (
 	"log"
 	"time"
 
+	defFirestore "cloud.google.com/go/firestore"
+
 	"google.golang.org/api/iterator"
 )
 
@@ -32,6 +34,10 @@ func GetSkuByBarcode(ctx context.Context, barcode string) (*models.Sku, error) {
 		}
 		sku.Id = &doc.Ref.ID
 		skus = append(skus, sku)
+	}
+	if len(skus) == 0 {
+		log.Fatalf("Barcode not found: %v", barcode)
+		return nil, fmt.Errorf("barcode not found: %v", barcode)
 	}
 	return &skus[0], nil
 }
@@ -93,3 +99,27 @@ func GetLatestSuccessOrderDate(ctx context.Context, skuId string, branch string)
 
 	return &lstDateStr, nil
 }	
+
+func CreateOrder (ctx context.Context, order models.Order) (*string, error) {
+	docRef, _, err := firestore.Client.Collection("orders").Add(ctx, order)
+	
+	if err != nil {
+		return nil, err
+	}
+	return &docRef.ID, nil
+}
+
+func CreateOrderHistory (ctx context.Context, orderId string, orderHistory models.OrderHistory) (*string, error) {
+	docRef := firestore.Client.Collection("orders").Doc(orderId)
+	
+	_, err := docRef.Update(ctx, []defFirestore.Update{
+		{
+			Path: "history",
+			Value: defFirestore.ArrayUnion(orderHistory),
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &docRef.ID, nil
+} 

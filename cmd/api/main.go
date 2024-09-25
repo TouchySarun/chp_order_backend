@@ -19,7 +19,7 @@ func registerRoutes(router *mux.Router) {
 	router.HandleFunc("/api/users", handlers.CreateUser).Methods("POST") // Create user {body: {username, password}}
 	router.HandleFunc("/api/sku/{barcode}", handlers.GetSku).Methods("GET")
 	router.HandleFunc("/api/orders/create-data/{barcode}/{branch}", handlers.GetCreateOrderData).Methods("GET") // Get create order data
-	// router.HandleFunc("/api/orders", handlers.CreateOrder).Methods("POST") // Create order {body:{branch, name,utqName,utqQty,code,sku,ap,qty,cat,bnd,creBy}}
+	router.HandleFunc("/api/orders", handlers.CreateOrder).Methods("POST") // Create order {body:{branch, name,utqName,utqQty,code,sku,ap,qty,cat,bnd,creBy}}
 	// router.HandleFunc("/api/orders", handlers.EditOrder).Methods("PUT") // Edit order {id, qty, utqName, utqqty, code, creBy}
 	// router.HandleFunc("/api/orders", handlers.GetOrders).Methods("GET") // Get orders with query params
 	// router.HandleFunc("/api/orders/{id}/{status}", handlers.UpdateStatus).Methods("POST") // Update order status {creBy, qty}
@@ -27,7 +27,6 @@ func registerRoutes(router *mux.Router) {
 	// router.HandleFunc("/api/shipping/confirm", handlers.CreateShipping).Methods("POST") // Confirm shipping {branch, creBy}
 	// router.HandleFunc("/api/shipping/temp", handlers.GetTempShipping).Methods("GET") // Get temp shipping
 }
-
 
 func main() {
 	// Load environment variables

@@ -55,5 +55,18 @@ type OrderHistory struct {
 	OldQty			*int `firestore:"oldQty"`
 	NewQty		*int `firestore:"newQty"`
 	Remark		*string `firestore:"remark"`
+}
 
+type OrderCreateReqeust struct {
+	Branch string `json:"branch"`
+	Name string `json:"name"`
+	UtqName string `json:"utqName"`
+	UtqQty int `json:"utqQty"`
+	Code string `json:"code"`
+	Sku string `json:"sku"`
+	Ap string `json:"ap"`
+	Qty int `json:"qty"`
+	Cat string `json:"cat"`
+	Bnd string `json:"bnd"`
+	CreBy string `json:"creBy"`
 }
