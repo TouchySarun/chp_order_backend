@@ -17,7 +17,8 @@ func registerRoutes(router *mux.Router) {
 	router.HandleFunc("/api/users/{id}", handlers.GetUserById).Methods("GET") // 
 	router.HandleFunc("/api/users", handlers.GetUsers).Methods("GET") // Get all users
 	router.HandleFunc("/api/users", handlers.CreateUser).Methods("POST") // Create user {body: {username, password}}
-	// router.HandleFunc("/api/orders/create-data/{barcode}/{branch}", handlers.GetCreateOrderData).Methods("GET") // Get create order data
+	router.HandleFunc("/api/sku/{barcode}", handlers.GetSku).Methods("GET")
+	router.HandleFunc("/api/orders/create-data/{barcode}/{branch}", handlers.GetCreateOrderData).Methods("GET") // Get create order data
 	// router.HandleFunc("/api/orders", handlers.CreateOrder).Methods("POST") // Create order {body:{branch, name,utqName,utqQty,code,sku,ap,qty,cat,bnd,creBy}}
 	// router.HandleFunc("/api/orders", handlers.EditOrder).Methods("PUT") // Edit order {id, qty, utqName, utqqty, code, creBy}
 	// router.HandleFunc("/api/orders", handlers.GetOrders).Methods("GET") // Get orders with query params
