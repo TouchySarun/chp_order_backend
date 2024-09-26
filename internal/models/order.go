@@ -43,7 +43,7 @@ type Order struct {
 	StartDate time.Time	`firestore:"startDate"`
 	EndDate 	*time.Time `firestore:"endDate"`
 	Status string	`firestore:"status"`
-	LstUpd string `firestore:"lstUpd"`
+	LstUpd time.Time `firestore:"lstUpd"`
 	History *[]OrderHistory `firestore:"history"`
 }
 type OrderHistory struct {
@@ -68,5 +68,14 @@ type OrderCreateReqeust struct {
 	Qty int `json:"qty"`
 	Cat string `json:"cat"`
 	Bnd string `json:"bnd"`
+	CreBy string `json:"creBy"`
+}
+
+type OrderEditRequest struct {
+	Id string `json:"id"`
+	UtqName string `json:"utqName"`
+	UtqQty int `json:"utqQty"`
+	Code string `json:"code"`
+	Qty int `json:"qty"`
 	CreBy string `json:"creBy"`
 }

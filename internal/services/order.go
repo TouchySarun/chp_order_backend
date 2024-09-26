@@ -12,7 +12,50 @@ import (
 
 	"google.golang.org/api/iterator"
 )
+const ordersCollection = "orders"
+func GetOrder(ctx context.Context, id string) (*models.Order, error) {
+	var order models.Order
+	doc ,err := firestore.Client.Collection(ordersCollection).Doc(id).Get(ctx)
+	if err != nil {
+		log.Fatalf("Failed, Getting order: %v", err)
+		return nil, err
+	}
+	if err := doc.DataTo(&order); err != nil {
+		log.Fatalf("Failed, convert orderData to order: %v", err)
+		return nil, err
+	}
+	order.Id = &doc.Ref.ID
+	return &order, nil
+	
+}
 
+func EditOrder(ctx context.Context, id string, updatedFields map[string]interface{}) error {
+
+	// Reference the specific order document
+	orderRef := firestore.Client.Collection(ordersCollection).Doc(id)
+
+	// Update the document with the fields provided in updatedFields
+	_, err := orderRef.Update(ctx, updatedFieldsToFirestoreUpdates(updatedFields))
+	if err != nil {
+		return fmt.Errorf("failed to update order: %v", err)
+	}
+
+	return nil
+}
+func updatedFieldsToFirestoreUpdates(updatedFields map[string]interface{}) []defFirestore.Update {
+	var updates []defFirestore.Update
+	for field, value := range updatedFields {
+		newUpdate := defFirestore.Update{
+			Path: field,
+			Value: value,
+		}
+		if field == "qty" || field == "leftQty" {
+			newUpdate.Value = defFirestore.Increment(value)
+		}
+		updates = append(updates, newUpdate)
+	}
+	return updates
+}
 func GetSkuByBarcode(ctx context.Context, barcode string) (*models.Sku, error) {
 	var skus []models.Sku
 	query := firestore.Client.Collection("skus").Where("barcodes","array-contains", barcode)
@@ -44,7 +87,7 @@ func GetSkuByBarcode(ctx context.Context, barcode string) (*models.Sku, error) {
 
 func GetLatestOrder(ctx context.Context, skuId string, branch string) (*models.Order, error) {
 	var orders []models.Order
-	query := firestore.Client.Collection("orders").Where("leftQty", ">", 0).Where("sku", "==", skuId)
+	query := firestore.Client.Collection(ordersCollection).Where("leftQty", ">", 0).Where("sku", "==", skuId)
 	iter := query.Documents(ctx)
 	for {
 		doc, err := iter.Next()
@@ -71,7 +114,7 @@ func GetLatestSuccessOrderDate(ctx context.Context, skuId string, branch string)
 	var maxDate time.Time
 	var found bool
 
-	query := firestore.Client.Collection("orders").Where("leftQty", "==", 0).Where("sku", "==", skuId)
+	query := firestore.Client.Collection(ordersCollection).Where("leftQty", "==", 0).Where("sku", "==", skuId)
 	iter := query.Documents(ctx)
 	
 	for {
@@ -101,7 +144,7 @@ func GetLatestSuccessOrderDate(ctx context.Context, skuId string, branch string)
 }	
 
 func CreateOrder (ctx context.Context, order models.Order) (*string, error) {
-	docRef, _, err := firestore.Client.Collection("orders").Add(ctx, order)
+	docRef, _, err := firestore.Client.Collection(ordersCollection).Add(ctx, order)
 	
 	if err != nil {
 		return nil, err
@@ -109,8 +152,8 @@ func CreateOrder (ctx context.Context, order models.Order) (*string, error) {
 	return &docRef.ID, nil
 }
 
-func CreateOrderHistory (ctx context.Context, orderId string, orderHistory models.OrderHistory) (*string, error) {
-	docRef := firestore.Client.Collection("orders").Doc(orderId)
+func CreateOrderHistory (ctx context.Context, orderId string, orderHistory models.OrderHistory) error {
+	docRef := firestore.Client.Collection(ordersCollection).Doc(orderId)
 	
 	_, err := docRef.Update(ctx, []defFirestore.Update{
 		{
@@ -119,7 +162,7 @@ func CreateOrderHistory (ctx context.Context, orderId string, orderHistory model
 		},
 	})
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return &docRef.ID, nil
+	return nil
 } 
