@@ -23,10 +23,12 @@ func registerRoutes(router *mux.Router) {
 	router.HandleFunc("/api/orders", handlers.EditOrder).Methods("PUT") // Edit order {id, qty, utqName, utqqty, code, creBy}
 	router.HandleFunc("/api/orders", handlers.GetOrders).Methods("GET") // Get orders with query params
 	router.HandleFunc("/api/orders/{id}", handlers.UpdateStatus).Methods("POST") // Update order status {creBy, qty, status}
-	// router.HandleFunc("/api/shipping/temp", handlers.CreateTempShipping).Methods("POST") // Create temp shipping {orderId, qty, branch}
-	// router.HandleFunc("/api/shipping/confirm", handlers.CreateShipping).Methods("POST") // Confirm shipping {branch, creBy}
-	// router.HandleFunc("/api/shipping/temp", handlers.GetTempShipping).Methods("GET") // Get temp shipping
+	router.HandleFunc("/api/shipping", handlers.CreateShipping).Methods("POST") // Create temp shipping {orderId, qty, branch} // qty = dif then all is edit
+	// router.HandleFunc("/api/shipping/confirm", handlers.ConfirmShipping).Methods("POST") // Confirm shipping {branch}
+	router.HandleFunc("/api/shipping/{branch}/{limit}/{page}", handlers.GetShipping).Methods("GET") // Get temp shipping // qty = sum of all orderId
 }
+
+//TODO: limit, offset = params , query?
 
 func main() {
 	// Load environment variables
