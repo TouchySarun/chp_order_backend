@@ -17,6 +17,7 @@ type Sku struct {
 	Img string	`firestore:"img"`
 	Cat string	`firestore:"cat"`
 	Bnd string	`firestore:"bnd"`
+	Barcodes []string `firestore:"barcodes"`
 	Goods []Goods	`firestore:"goods"`
 }
 type Goods struct {

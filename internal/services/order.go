@@ -223,3 +223,45 @@ func MakeOrderUpdateField (req models.OrderEditRequest) (*map[string]interface{}
 	updatedFields["lstUpd"] = time.Now()
 	return &updatedFields, nil
 }
+
+func MakeGetOrderQuery(q map[string]string) defFirestore.Query {
+	query := firestore.Client.Collection(ordersCollection).Where("leftQty", ">", 0)
+	// Apply each filter conditionally
+	if len(q) > 0 {
+		for field, value := range q {
+			if value != "" {
+				fmt.Printf("Add %v == %v to the query\n", field, value)
+				query = query.Where(field, "==", value)
+			}
+		}
+	}
+	return query
+}
+
+func GetOrders(ctx context.Context, q map[string]string, code string, limit int, page int) (*[]models.Order, error){
+	var orders []models.Order
+	offset := (page-1)*limit
+	var query = MakeGetOrderQuery(q)
+	if code != "" {
+		sku, err := GetSkuByBarcode(ctx, code)
+		if err != nil {
+			return nil, err
+		}
+		query = query.Where("code","in", sku.Barcodes)
+	}
+	query = query.OrderBy("startDate", defFirestore.Desc).Limit(limit).Offset(offset)
+	query.Documents(ctx).GetAll()
+	docs, err := query.Documents(ctx).GetAll()
+	if err != nil {
+		return nil, err
+	}
+	for _, doc := range docs {
+		var order models.Order 
+		if err := doc.DataTo(&order); err == nil {
+			order.Id = &doc.Ref.ID
+			order.History = &[]models.OrderHistory{}
+			orders = append(orders, order)
+		}
+	}
+	return &orders, nil
+}

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	defFirestore "cloud.google.com/go/firestore"
@@ -161,4 +162,35 @@ func EditOrder(w http.ResponseWriter, r *http.Request) {
 		services.WriteResponseErr(&w, fmt.Sprintf("Transaction failed: %v", err), http.StatusInternalServerError)
 		return
 	}
+}
+
+func GetOrders(w http.ResponseWriter, r *http.Request) {
+	// Required query parameters
+	limitStr := r.URL.Query().Get("limit")
+	pageStr := r.URL.Query().Get("page")
+	ctx := r.Context()
+	// Convert 'limit' and 'page' to integers
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		http.Error(w, "Invalid or missing 'limit' parameter", http.StatusBadRequest)
+		return
+	}
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page <= 0 {
+		http.Error(w, "Invalid or missing 'page' parameter", http.StatusBadRequest)
+		return
+	}
+	fieldConditions := map[string]string{
+		"status": r.URL.Query().Get("status"),
+		"creBy":  r.URL.Query().Get("creBy"),
+		"ap":     r.URL.Query().Get("ap"),
+		"rack":   r.URL.Query().Get("rack"),
+		"branch": r.URL.Query().Get("code"),
+	}
+	code := r.URL.Query().Get("code")
+	orders, err := services.GetOrders(ctx, fieldConditions, code,limit, page)
+	if err != nil {
+		services.WriteResponseErr(&w, fmt.Sprintf("Failed, Getting orders, %v",err),http.StatusInternalServerError)
+	}
+	services.WriteResponseSuccess(&w,orders)
 }
