@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"reflect"
 	"time"
 
 	defFirestore "cloud.google.com/go/firestore"
@@ -166,3 +167,59 @@ func CreateOrderHistory (ctx context.Context, orderId string, orderHistory model
 	}
 	return nil
 } 
+
+
+func MakeOrderHistoryUpdateField (req models.OrderEditRequest, order models.Order) (models.OrderHistory){
+	var newQty = order.Qty + req.Qty
+	var newUtqName = order.UtqName
+	if req.UtqName != "" {
+		newUtqName = req.UtqName
+	}
+	orderHistory := models.OrderHistory{
+		Status:     "edit",
+		Date:       time.Now(),
+		CreBy:      req.CreBy,
+		OldQty:     &order.Qty,
+		OldUtqName: &order.UtqName,
+		NewQty:     &newQty,
+		NewUtqName: &newUtqName,
+	}
+	return orderHistory
+}
+
+func MakeOrderUpdateField (req models.OrderEditRequest) (*map[string]interface{}, error) {
+	updatedFields := make(map[string]interface{})
+	reqValue := reflect.ValueOf(req) // get array of value from req
+	reqType := reflect.TypeOf(req) // get array of type from req
+
+	if reqValue.NumField() == 0 {
+		return nil, fmt.Errorf("no input fields")
+	}
+
+	for i:=0; i< reqValue.NumField(); i++ {
+		v := reqValue.Field(i) // get req[i].value
+		t	:= reqType.Field(i) // get req[i].type
+		n := t.Tag.Get("json") // get type name
+
+		// if have value add to update fields
+		switch v.Kind() {
+			case reflect.String: // Handle strings (value type)
+				if v.String() != "" { // Check if string is not empty
+					updatedFields[n] = v.String()
+				}
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64: // Handle integer types
+				if v.Int() != 0 { // Check if integer is non-zero
+					updatedFields[n] = v.Int()
+				}
+		}
+	}
+
+	if len(updatedFields) == 0 {
+		return nil, fmt.Errorf("no fields to update")
+	}
+	if updatedFields["qty"] != nil {
+		updatedFields["leftQty"] = req.Qty
+	}
+	updatedFields["lstUpd"] = time.Now()
+	return &updatedFields, nil
+}
