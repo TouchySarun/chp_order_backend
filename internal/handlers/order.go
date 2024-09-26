@@ -162,6 +162,7 @@ func EditOrder(w http.ResponseWriter, r *http.Request) {
 		services.WriteResponseErr(&w, fmt.Sprintf("Transaction failed: %v", err), http.StatusInternalServerError)
 		return
 	}
+	services.WriteResponseSuccess(&w, "Success")
 }
 
 func GetOrders(w http.ResponseWriter, r *http.Request) {
@@ -193,4 +194,93 @@ func GetOrders(w http.ResponseWriter, r *http.Request) {
 		services.WriteResponseErr(&w, fmt.Sprintf("Failed, Getting orders, %v",err),http.StatusInternalServerError)
 	}
 	services.WriteResponseSuccess(&w,orders)
+}
+
+func UpdateStatus(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	id := mux.Vars(r)["id"]
+	var updatedFields = map[string]interface{}{"lstUpd":time.Now()}
+	var req models.OrderUpdateStatusRequest
+
+	dcerr := json.NewDecoder(r.Body).Decode(&req)
+	if dcerr != nil {
+		services.WriteResponseErr(&w, "can't decode request.", http.StatusBadRequest)
+		return
+	}
+	order, oerr := services.GetOrder(ctx, id)
+	if oerr != nil {
+		services.WriteResponseErr(&w, fmt.Sprintf("can't find order. \n %v\n",oerr), http.StatusBadRequest)
+		return
+	}
+	var oh = models.OrderHistory{
+		Date:       time.Now(),
+		CreBy:      req.CreBy,
+	}
+	// create updateFields and orderHistory
+	switch req.Status{
+	case "picking":{
+		// pc click order => just update status, lstUpd ## except status == "shipping"
+		if order.Status == "shipping" || order.Status == "picking" {
+			services.WriteResponseSuccess(&w, fmt.Sprintf("Must update status to picking (PC click order) but order status is %v, so I do nothing.", order.Status))
+			return
+		} else {
+			updatedFields["status"]="picking"
+			oh.Status = "picking"
+			break
+		}
+	}
+	case "shipping":{
+		// pc click picking done => check if (qty == 0) just update status to left else update status to shipping left qty
+		if order.Status != "shipping" && order.Status != "picking" {
+			services.WriteResponseSuccess(&w, fmt.Sprintf("Must update status to shipping (PC done picking, order status shuld be picking or shipping) but order status is %v.", order.Status))
+			return
+		}
+		if req.Qty == 0 {
+			services.WriteResponseSuccess(&w, "Must update status to shipping and qty is 0, so I do nothing.")
+			return
+		} else {
+			updatedFields["status"] = "shipping"
+			updatedFields["leftQty"] = -1 * req.Qty
+
+			newQty := order.LeftQty - req.Qty
+			oh.Status = "shipping"
+			oh.OldQty = &order.LeftQty
+			oh.NewQty = &newQty
+			break
+		}
+	}
+	case "done": {
+		// br click shipping done => check if (leftQty == 0) 
+		if order.LeftQty == 0 {
+			updatedFields["status"] = "done"
+			updatedFields["endDate"] = time.Now()
+			oh.Status = "done"
+			break
+		} else {
+			updatedFields["status"] = "left"
+			oh.Status = "left"
+			break
+		}
+	}
+	}
+	if err := EditAndCreateOrderHistory(ctx,id,updatedFields,oh); err != nil {
+		services.WriteResponseErr(&w, fmt.Sprintf("Transaction failed: %v", err), http.StatusInternalServerError)
+	} else {
+		services.WriteResponseSuccess(&w, "Success")
+	}
+}
+
+func EditAndCreateOrderHistory(ctx context.Context, id string, updatedFields map[string]interface{}, oh models.OrderHistory) error {
+	// Start Firestore transaction to ensure consistency
+	return firestore.Client.RunTransaction(ctx, func(ctx context.Context, tx *defFirestore.Transaction) error {
+		// Edit order within the transaction
+		if err := services.EditOrder(ctx, id, updatedFields); err != nil {
+			return err
+		}
+		// Create order history within the transaction
+		if err := services.CreateOrderHistory(ctx, id, oh); err != nil {
+			return err
+		}
+		return nil
+	})
 }

@@ -80,3 +80,9 @@ type OrderEditRequest struct {
 	Qty int `json:"qty"`
 	CreBy string `json:"creBy"`
 }
+
+type OrderUpdateStatusRequest struct {
+	Status string `json:"status"`
+	CreBy string `json:"creBy"`
+	Qty int `json:"qty"`
+}
