@@ -250,7 +250,6 @@ func GetOrders(ctx context.Context, q map[string]string, code string, limit int,
 		query = query.Where("code","in", sku.Barcodes)
 	}
 	query = query.OrderBy("startDate", defFirestore.Desc).Limit(limit).Offset(offset)
-	query.Documents(ctx).GetAll()
 	docs, err := query.Documents(ctx).GetAll()
 	if err != nil {
 		return nil, err
