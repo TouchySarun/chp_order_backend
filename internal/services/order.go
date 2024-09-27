@@ -296,3 +296,76 @@ func GetOrders(ctx context.Context, q map[string]string, code string, limit int,
 	}
 	return &orders, nil
 }
+
+func UpdateStatus(ctx context.Context, id string, status string, qty int, creBy string) (*string, error){
+
+	var updatedFields = map[string]interface{}{"lstUpd":time.Now()}
+	order, oerr := GetOrder(ctx, id)
+	if oerr != nil {
+		// WriteResponseErr(&w, fmt.Sprintf("can't find order. \n %v\n",oerr), http.StatusBadRequest)
+		return nil, fmt.Errorf("can not find order: %v",oerr)
+	}
+	var oh = models.OrderHistory{
+		Date:       time.Now(),
+		CreBy:      creBy,
+	}
+	// create updateFields and orderHistory
+	switch status{
+	case "picking":{
+		// pc click order => just update status, lstUpd ## except status == "shipping"
+		if order.Status == "shipping" || order.Status == "picking" {
+			// WriteResponseSuccess(&w, fmt.Sprintf("Must update status to picking (PC click order) but order status is %v, so I do nothing.", order.Status))
+			res := fmt.Sprintf("Must update status to picking (PC click order) but order status is %v, so I do nothing.", order.Status)
+			return &res , nil
+		} else {
+			updatedFields["status"]="picking"
+			oh.Status = "picking"
+			break
+		}
+	}
+	case "shipping":{
+		// pc click picking done => check if (qty == 0) just update status to left else update status to shipping left qty
+		if order.Status != "shipping" && order.Status != "picking" {
+			// WriteResponseSuccess(&w, fmt.Sprintf("Must update status to shipping (PC done picking, order status shuld be picking or shipping) but order status is %v.", order.Status))
+			res := fmt.Sprintf("Must update status to shipping (PC done picking, order status shuld be picking or shipping) but order status is %v.", order.Status)
+			return &res, nil
+		}
+		if qty == 0 {
+			// WriteResponseSuccess(&w, "Must update status to shipping and qty is 0, so I do nothing.")
+			res := "Must update status to shipping and qty is 0, so I do nothing."
+			return &res, nil
+		} else {
+			updatedFields["status"] = "shipping"
+			updatedFields["leftQty"] = -1 * qty
+
+			newQty := order.LeftQty - qty
+			oh.Status = "shipping"
+			oh.OldQty = &order.LeftQty
+			oh.NewQty = &newQty
+			break
+		}
+	}
+	case "done": {
+		// br click shipping done => check if (leftQty == 0) 
+		if order.LeftQty == 0 {
+			updatedFields["status"] = "done"
+			updatedFields["endDate"] = time.Now()
+			oh.Status = "done"
+			break
+		} else {
+			updatedFields["status"] = "left"
+			oh.Status = "left"
+			break
+		}
+	}
+	}
+	if err := EditAndCreateOrderHistory(ctx,id,updatedFields,oh); err != nil {
+		// WriteResponseErr(&w, fmt.Sprintf("Transaction failed: %v", err), http.StatusInternalServerError)
+		return nil, fmt.Errorf("transaction failed: %v", err)
+	} else {
+		// WriteResponseSuccess(&w, "Success")
+		res := "Success"
+		return &res, nil
+	}
+
+}
