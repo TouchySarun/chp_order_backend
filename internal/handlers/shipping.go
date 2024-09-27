@@ -51,3 +51,21 @@ func GetShipping (w http.ResponseWriter, r *http.Request){
 	services.WriteResponseSuccess(&w, shippings)
 	
 }
+
+func ConfirmShipping (w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	var req models.ConfirmShippingRequest
+	// Decode the JSON request body into the req struct
+	dcerr := json.NewDecoder(r.Body).Decode(&req)
+	if dcerr != nil {
+		services.WriteResponseErr(&w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+
+	if err := services.ConfirmShipping(ctx, req.Branch, req.CreBy); err != nil {
+		services.WriteResponseErr(&w, fmt.Sprintf("Failed confirm shipping, \n%v\n", err), http.StatusInternalServerError)
+	} else {
+		services.WriteResponseSuccess(&w, "Success confirm shipping.")
+	}
+}
