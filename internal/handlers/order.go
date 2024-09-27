@@ -1,17 +1,13 @@
 package handlers
 
 import (
-	"TouchySarun/chp_order_backend/internal/firestore"
 	"TouchySarun/chp_order_backend/internal/models"
 	"TouchySarun/chp_order_backend/internal/services"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"time"
-
-	defFirestore "cloud.google.com/go/firestore"
 
 	"github.com/gorilla/mux"
 )
@@ -98,17 +94,9 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 		CreBy: req.CreBy,
 	}
 	// Call the service to create the order
-	id, cerr := services.CreateOrder(ctx, order)
-	if cerr != nil || id == nil {
-		services.WriteResponseErr(&w, "Failed to create order", http.StatusInternalServerError)
-		return
-	}
-	coherr := services.CreateOrderHistory(ctx, *id, orderHistory)
-	if coherr != nil  {
-		services.WriteResponseErr(&w, "Failed to create orderhistory", http.StatusInternalServerError)
-	}
+	services.CreateOrderAndOrderHistory(ctx, order, orderHistory)
 	// Write a success response
-	services.WriteResponseSuccess(&w, id)
+	services.WriteResponseSuccess(&w, order)
 }
 
 func EditOrder(w http.ResponseWriter, r *http.Request) { 
@@ -143,20 +131,7 @@ func EditOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Start Firestore transaction to ensure consistency
-	err = firestore.Client.RunTransaction(ctx, func(ctx context.Context, tx *defFirestore.Transaction) error {
-		fmt.Printf("order id : %v \n",req.Id)
-		// Edit order within the transaction
-		editErr := services.EditOrder(ctx, req.Id, *updatedFields)
-		if editErr != nil {
-			return editErr
-		}
-		// Create order history within the transaction
-		historyErr := services.CreateOrderHistory(ctx, req.Id, services.MakeOrderHistoryUpdateField(req,*order))
-		if historyErr != nil {
-			return fmt.Errorf("failed to create order history: %v", historyErr)
-		}
-		return nil
-	})
+	err = services.EditAndCreateOrderHistory(ctx, *order.Id, *updatedFields, services.MakeOrderHistoryUpdateField(req,*order))
 	// Handle any transaction errors
 	if err != nil {
 		services.WriteResponseErr(&w, fmt.Sprintf("Transaction failed: %v", err), http.StatusInternalServerError)
@@ -263,24 +238,9 @@ func UpdateStatus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	}
-	if err := EditAndCreateOrderHistory(ctx,id,updatedFields,oh); err != nil {
+	if err := services.EditAndCreateOrderHistory(ctx,id,updatedFields,oh); err != nil {
 		services.WriteResponseErr(&w, fmt.Sprintf("Transaction failed: %v", err), http.StatusInternalServerError)
 	} else {
 		services.WriteResponseSuccess(&w, "Success")
 	}
-}
-
-func EditAndCreateOrderHistory(ctx context.Context, id string, updatedFields map[string]interface{}, oh models.OrderHistory) error {
-	// Start Firestore transaction to ensure consistency
-	return firestore.Client.RunTransaction(ctx, func(ctx context.Context, tx *defFirestore.Transaction) error {
-		// Edit order within the transaction
-		if err := services.EditOrder(ctx, id, updatedFields); err != nil {
-			return err
-		}
-		// Create order history within the transaction
-		if err := services.CreateOrderHistory(ctx, id, oh); err != nil {
-			return err
-		}
-		return nil
-	})
 }

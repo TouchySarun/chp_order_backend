@@ -14,6 +14,38 @@ import (
 	"google.golang.org/api/iterator"
 )
 const ordersCollection = "orders"
+
+
+func EditAndCreateOrderHistory(ctx context.Context, id string, updatedFields map[string]interface{}, oh models.OrderHistory) error {
+	// Start Firestore transaction to ensure consistency
+	return firestore.Client.RunTransaction(ctx, func(ctx context.Context, tx *defFirestore.Transaction) error {
+		// Edit order within the transaction
+		if err := EditOrder(ctx, id, updatedFields); err != nil {
+			return err
+		}
+		// Create order history within the transaction
+		if err := CreateOrderHistory(ctx, id, oh); err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func CreateOrderAndOrderHistory(ctx context.Context, o models.Order, oh models.OrderHistory) error {
+	return firestore.Client.RunTransaction(ctx, func(ctx context.Context, tx *defFirestore.Transaction) error {
+		// Edit order within the transaction
+		id, err := CreateOrder(ctx, o)
+		if err != nil {
+			return err
+		}
+		// Create order history within the transaction
+		if err := CreateOrderHistory(ctx, *id, oh); err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
 func GetOrder(ctx context.Context, id string) (*models.Order, error) {
 	var order models.Order
 	doc ,err := firestore.Client.Collection(ordersCollection).Doc(id).Get(ctx)
