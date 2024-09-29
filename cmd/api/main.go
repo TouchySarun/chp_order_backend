@@ -14,7 +14,7 @@ import (
 
 // Function to define routes
 func registerRoutes(router *mux.Router) {
-	router.HandleFunc("/api/users/{id}", handlers.GetUserById).Methods("GET") // 
+	router.HandleFunc("/api/users/{username}", handlers.GetUserByUsername).Methods("GET") // 
 	router.HandleFunc("/api/users", handlers.GetUsers).Methods("GET") // Get all users
 	router.HandleFunc("/api/users", handlers.CreateUser).Methods("POST") // Create user {body: {username, password}}
 	router.HandleFunc("/api/sku/{barcode}", handlers.GetSku).Methods("GET")

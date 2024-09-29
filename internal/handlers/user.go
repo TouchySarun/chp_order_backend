@@ -18,7 +18,6 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
   //   }
     users := models.User{
 			Name: "John doe",
-			Age: 45,
 		}
     
     w.Header().Set("Content-Type", "application/json")
@@ -34,11 +33,22 @@ func GetUserById(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "User not found.", http.StatusNotFound)
 		return
 	}
-	
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(userData); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+func GetUserByUsername(w http.ResponseWriter, r *http.Request) {
+	username := mux.Vars(r)["username"]
+	ctx := r.Context()
+
+	user, err := services.GetUserByUsername(ctx, username)
+	if err != nil {
+		services.WriteResponseErr(&w, "User not found.", http.StatusNotFound)
+	} else {
+		services.WriteResponseSuccess(&w, user)
 	}
 }
 
