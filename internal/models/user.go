@@ -1,7 +1,7 @@
 package models
 
 type User struct {
-	Id	*string
+	Id	*string `json:"id"`
 	Username string `firestore:"username" json:"username"`
 	Password string  `firestore:"password" json:"password"`
 	Name string `firestore:"name" json:"name"`

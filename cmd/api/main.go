@@ -14,8 +14,8 @@ import (
 
 // Function to define routes
 func registerRoutes(router *mux.Router) {
-	router.HandleFunc("/api/users/{username}", handlers.GetUserByUsername).Methods("GET") // 
-	router.HandleFunc("/api/users", handlers.GetUsers).Methods("GET") // Get all users
+	router.HandleFunc("/api/login", handlers.Login).Methods("POST")
+	router.HandleFunc("/api/users/{id}", handlers.GetUserById).Methods("GET") // 
 	router.HandleFunc("/api/users", handlers.CreateUser).Methods("POST") // Create user {body: {username, password}}
 	router.HandleFunc("/api/sku/{barcode}", handlers.GetSku).Methods("GET")
 	router.HandleFunc("/api/orders/create-data/{barcode}/{branch}", handlers.GetCreateOrderData).Methods("GET") // Get create order data
@@ -29,6 +29,24 @@ func registerRoutes(router *mux.Router) {
 }
 
 //TODO: limit, offset = params or query
+
+// CORS middleware to handle CORS
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*") // Allow all origins; adjust as needed
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		// Handle preflight requests
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r) // Call the next handler
+	})
+}
+
 
 func main() {
 	// Load environment variables
@@ -54,6 +72,7 @@ func main() {
 	registerRoutes(router)
 
 	// Add middleware
+	router.Use(corsMiddleware) 
 	router.Use(middleware.LoggingMiddleware) // Log every request
 	router.Use(middleware.RecoverMiddleware) // Handle panics and recover gracefully
 

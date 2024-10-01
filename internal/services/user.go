@@ -12,12 +12,19 @@ import (
 
 const usersCollection = "users"
 
-func GetUser(ctx context.Context, userID string) (map[string]interface{}, error) {
+func GetUser(ctx context.Context, userID string) (*models.User, error) {
 	doc, err := firestore.Client.Collection("users").Doc(userID).Get(ctx)
 	if err != nil {
-			return nil, err
+		log.Fatalf("Failed, get data from firestore: %v", err)
+		return nil, err
 	}
-	return doc.Data(), nil
+	var user models.User
+	if err := doc.DataTo(&user); err != nil {
+		log.Fatalf("Failed, convert useData to user: %v", err)
+		return nil, err
+	}
+	fmt.Println("success get user from firestore")
+	return &user, nil
 }
 
 func GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
@@ -29,8 +36,7 @@ func GetUserByUsername(ctx context.Context, username string) (*models.User, erro
 		doc, err := iter.Next()
 		if err == iterator.Done {
 			break
-		}
-		if err != nil {
+		} else if err != nil {
 			log.Fatalf("Failed, Get user from firestore: %v",err)
 			return nil, err
 		}
@@ -40,6 +46,7 @@ func GetUserByUsername(ctx context.Context, username string) (*models.User, erro
 			return nil, err
 		}
 		user.Id = &doc.Ref.ID
+		fmt.Printf("user %v\n",user)
 		users = append(users, user)
 	}
 	if len(users) == 0 {
