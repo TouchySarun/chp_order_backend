@@ -5,57 +5,57 @@ import (
 )
 
 type OrderCreateData struct {
-	Sku Sku
-	Order Order
-	LastOrderDate string
+	Sku Sku `json:"sku"`
+	Order *Order `json:"order,omitempty"`
+	LastOrderDate *time.Time `json:"lstSuccess,omitempty"`
 }
 
 type Sku struct {
-	Id *string
-	Name string	`firestore:"name"`
-	Ap string	`firestore:"ap"`
-	Img string	`firestore:"img"`
-	Cat string	`firestore:"cat"`
-	Bnd string	`firestore:"bnd"`
-	Barcodes []string `firestore:"barcodes"`
-	Goods []Goods	`firestore:"goods"`
+	Id *string `json:"id"`
+	Name string	`firestore:"name" json:"name"`
+	Ap string	`firestore:"ap" json:"ap"`
+	Img string	`firestore:"img" json:"img"`
+	Cat string	`firestore:"cat" json:"cat"`
+	Bnd string	`firestore:"bnd" json:"bnd"`
+	Barcodes []string `firestore:"barcodes" json:"barcodes"`
+	Goods []Goods	`firestore:"goods" json:"goods"`
 }
 type Goods struct {
-	Code string	`firestore:"code"`
-	UtqName string	`firestore:"utqName"`
-	UtqQty string	`firestore:"utqQty"`
-	Price0 string	`firestore:"price0"`
-	Prict8 string	`firestore:"prict8"`
+	Code string	`firestore:"code" json:"code"`
+	UtqName string	`firestore:"utqName" json:"utqName"`
+	UtqQty string	`firestore:"utqQty" json:"utqQty"`
+	Price0 string	`firestore:"price0" json:"price0"`
+	Prict8 string	`firestore:"prict8" json:"price8"`
 }
 type Order struct {
 	Id	*string
-	Branch string	`firestore:"branch"`
-	Name string	`firestore:"name"`
-	UtqName string	`firestore:"utqName"`
-	UtqQty int	`firestore:"utqQty"`
-	Code string	`firestore:"code"`
-	Sku string	`firestore:"sku"`
-	Ap string	`firestore:"ap"`
-	Qty int	`firestore:"qty"`
-	LeftQty int	`firestore:"leftQty"`
-	Cat string	`firestore:"cat"`
-	Bnd string	`firestore:"bnd"`
-	CreBy string	`firestore:"creBy"`
-	StartDate time.Time	`firestore:"startDate"`
-	EndDate 	*time.Time `firestore:"endDate"`
-	Status string	`firestore:"status"`
-	LstUpd time.Time `firestore:"lstUpd"`
-	History *[]OrderHistory `firestore:"history"`
+	Branch string	`firestore:"branch" json:"branch"`
+	Name string	`firestore:"name" json:"name"`
+	UtqName string	`firestore:"utqName" json:"utqName"`
+	UtqQty int	`firestore:"utqQty" json:"utqQty"`
+	Code string	`firestore:"code" json:"code"`
+	Sku string	`firestore:"sku" json:"sku"`
+	Ap string	`firestore:"ap" json:"ap"`
+	Qty int	`firestore:"qty" json:"qty"`
+	LeftQty int	`firestore:"leftQty" json:"leftQty"`
+	Cat string	`firestore:"cat" json:"cat"`
+	Bnd string	`firestore:"bnd" json:"bnd"`
+	CreBy string	`firestore:"creBy" json:"creBy"`
+	StartDate time.Time	`firestore:"startDate" json:"startDate"`
+	EndDate 	*time.Time `firestore:"endDate" json:"endDate"`
+	Status string	`firestore:"status" json:"status"`
+	LstUpd time.Time `firestore:"lstUpd" json:"lstUpd"`
+	History *[]OrderHistory `firestore:"history" json:"history"`
 }
 type OrderHistory struct {
-	Status string `firestore:"status"`
-	Date time.Time `firestore:"date"`
-	CreBy string `firestore:"creBy"`
-	OldUtqName		*string `firestore:"oldUtqName"`
-	NewUtqName		*string `firestore:"newUtqName"`
-	OldQty			*int `firestore:"oldQty"`
-	NewQty		*int `firestore:"newQty"`
-	Remark		*string `firestore:"remark"`
+	Status string `firestore:"status" json:"status"`
+	Date time.Time `firestore:"date" json:"date"`
+	CreBy string `firestore:"creBy" json:"creBy"`
+	OldUtqName		*string `firestore:"oldUtqName" json:"oldUtqName"`
+	NewUtqName		*string `firestore:"newUtqName" json:"newUtqName"`
+	OldQty			*int `firestore:"oldQty" json:"oldQty"`
+	NewQty		*int `firestore:"newQty" json:"newQty"`
+	Remark		*string `firestore:"remark" json:"remark"`
 }
 
 type OrderCreateReqeust struct {

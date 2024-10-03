@@ -143,7 +143,7 @@ func GetLatestOrder(ctx context.Context, skuId string, branch string) (*models.O
 	}
 }	
 
-func GetLatestSuccessOrderDate(ctx context.Context, skuId string, branch string) (*string, error) {
+func GetLatestSuccessOrderDate(ctx context.Context, skuId string, branch string) (*time.Time, error) {
 	var maxDate time.Time
 	var found bool
 
@@ -171,9 +171,14 @@ func GetLatestSuccessOrderDate(ctx context.Context, skuId string, branch string)
 			found = true
 		}
 	}
-	lstDateStr := maxDate.String()
+	var defDate time.Time
+	// have value
+	if maxDate.After(defDate){
+		return &maxDate, nil
+	}else {
+		return nil, nil
+	}
 
-	return &lstDateStr, nil
 }	
 
 func CreateOrder (ctx context.Context, order models.Order) (*string, error) {

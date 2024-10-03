@@ -32,25 +32,26 @@ func GetCreateOrderData(w http.ResponseWriter, r *http.Request) {
 		services.WriteResponseErr(&w, fmt.Sprintf("Product not found. %v", skuErr), http.StatusNotFound)
 		return
 	}
+	// fmt.Printf("success get sku %v \n ", skuData)
 	skuId := *skuData.Id
 	orderData, orderErr := services.GetLatestOrder(ctx, skuId, branch)
 	if orderErr != nil{
-		services.WriteResponseErr(&w, fmt.Sprintf("Failed, getting latest order. %v", orderErr), http.StatusNotFound)
+		services.WriteResponseErr(&w, fmt.Sprintf("Failed, getting latest order. %v", orderErr), http.StatusInternalServerError)
 		return
 	}
 	latestDate, latestErr := services.GetLatestSuccessOrderDate(ctx, skuId, branch)
 	if latestErr != nil {
-		services.WriteResponseErr(&w, fmt.Sprintf("Failed, getting latest success order's date. %v", latestErr), http.StatusNotFound)
+		services.WriteResponseErr(&w, fmt.Sprintf("Failed, getting latest success order's date. %v", latestErr), http.StatusInternalServerError)
 		return
 	}
 	res := models.OrderCreateData{
 		Sku: *skuData,
 	}
 	if orderData != nil {
-		res.Order = *orderData
+		res.Order = orderData
 	}
 	if latestDate != nil {
-		res.LastOrderDate = *latestDate
+		res.LastOrderDate = latestDate
 	}
 	services.WriteResponseSuccess(&w, res)
 }

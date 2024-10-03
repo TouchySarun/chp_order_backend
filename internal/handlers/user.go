@@ -11,28 +11,15 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func GetUsers(w http.ResponseWriter, r *http.Request) {
-	// 	 users, err := services.GetAllUsers()
-  //   if err != nil {
-  //       http.Error(w, "Error fetching users", http.StatusInternalServerError)
-  //       return
-  //   }
-    users := models.User{
-			Name: "John doe",
-		}
-    
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(users)
-}
-
 func GetUserById(w http.ResponseWriter, r *http.Request) {
 	userId := mux.Vars(r)["id"]
 	ctx := r.Context()
-	fmt.Println("GET user by id")
+	// fmt.Println("GET user by id")
 	user, err := services.GetUser(ctx, userId)
 	if err != nil {
 		services.WriteResponseErr(&w, "User not found.", http.StatusNotFound)
 	} else {
+		fmt.Println(user)
 		services.WriteResponseSuccess(&w, user)
 	}
 }
@@ -50,19 +37,19 @@ func GetUserByUsername(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
-    var user models.User
-    if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-        http.Error(w, "Invalid input", http.StatusBadRequest)
-        return
-    }
+	var user models.User
+	ctx := r.Context()
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
 
-    // err := services.CreateUser(user)
-    // if err != nil {
-    //     http.Error(w, "Error creating user", http.StatusInternalServerError)
-    //     return
-    // }
-
-    w.WriteHeader(http.StatusCreated)
+	err := services.CreateUser(ctx, user)
+	if err != nil {
+		services.WriteResponseErr(&w, "error creating user.", http.StatusInternalServerError)
+	} else {
+		services.WriteResponseSuccess(&w, "success create user.")
+	}
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
@@ -84,4 +71,23 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	} else {
 		services.WriteResponseSuccess(&w, user)
 	}
+}
+
+func EditUser(w http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["id"]
+	ctx := r.Context()
+
+	var user models.User
+
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		services.WriteResponseErr(&w, "Invalid input.", http.StatusBadRequest)
+		return
+	}
+
+	if err := services.EditUser(ctx, id, user); err != nil {
+		services.WriteResponseErr(&w, fmt.Sprintf("Failed, edit user %v",err), http.StatusInternalServerError)
+	} else {
+		services.WriteResponseSuccess(&w, "Success, edit user")
+	}
+
 }
