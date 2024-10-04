@@ -134,6 +134,7 @@ func GetLatestOrder(ctx context.Context, skuId string, branch string) (*models.O
 		if err := doc.DataTo(&order); err != nil {
 			return nil, err
 		}
+		order.Id = &doc.Ref.ID
 		orders = append(orders, order)
 	}
 	if len(orders) > 0 {

@@ -48,6 +48,7 @@ func GetCreateOrderData(w http.ResponseWriter, r *http.Request) {
 		Sku: *skuData,
 	}
 	if orderData != nil {
+		orderData.History = nil 
 		res.Order = orderData
 	}
 	if latestDate != nil {

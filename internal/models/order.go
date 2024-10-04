@@ -42,10 +42,10 @@ type Order struct {
 	Bnd string	`firestore:"bnd" json:"bnd"`
 	CreBy string	`firestore:"creBy" json:"creBy"`
 	StartDate time.Time	`firestore:"startDate" json:"startDate"`
-	EndDate 	*time.Time `firestore:"endDate" json:"endDate"`
+	EndDate 	*time.Time `firestore:"endDate" json:"endDate,omitempty"`
 	Status string	`firestore:"status" json:"status"`
-	LstUpd time.Time `firestore:"lstUpd" json:"lstUpd"`
-	History *[]OrderHistory `firestore:"history" json:"history"`
+	LstUpd *time.Time `firestore:"lstUpd" json:"lstUpd,omitempty"`
+	History *[]OrderHistory `firestore:"history" json:"history,omitempty"`
 }
 type OrderHistory struct {
 	Status string `firestore:"status" json:"status"`
