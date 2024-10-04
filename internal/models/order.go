@@ -28,7 +28,7 @@ type Goods struct {
 	Prict8 string	`firestore:"prict8" json:"price8"`
 }
 type Order struct {
-	Id	*string
+	Id	*string `json:"id"`
 	Branch string	`firestore:"branch" json:"branch"`
 	Name string	`firestore:"name" json:"name"`
 	UtqName string	`firestore:"utqName" json:"utqName"`

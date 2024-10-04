@@ -29,19 +29,19 @@ func GetCreateOrderData(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	skuData, skuErr := services.GetSkuByBarcode(ctx, barcode)
 	if skuErr != nil || skuData == nil || skuData.Id == nil {
-		services.WriteResponseErr(&w, fmt.Sprintf("Product not found. %v", skuErr), http.StatusNotFound)
+		services.WriteResponseErr(&w, skuErr.Error(), http.StatusNotFound)
 		return
 	}
 	// fmt.Printf("success get sku %v \n ", skuData)
 	skuId := *skuData.Id
 	orderData, orderErr := services.GetLatestOrder(ctx, skuId, branch)
 	if orderErr != nil{
-		services.WriteResponseErr(&w, fmt.Sprintf("Failed, getting latest order. %v", orderErr), http.StatusInternalServerError)
+		services.WriteResponseErr(&w, orderErr.Error(), http.StatusInternalServerError)
 		return
 	}
 	latestDate, latestErr := services.GetLatestSuccessOrderDate(ctx, skuId, branch)
 	if latestErr != nil {
-		services.WriteResponseErr(&w, fmt.Sprintf("Failed, getting latest success order's date. %v", latestErr), http.StatusInternalServerError)
+		services.WriteResponseErr(&w, latestErr.Error(), http.StatusInternalServerError)
 		return
 	}
 	res := models.OrderCreateData{

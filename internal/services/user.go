@@ -5,7 +5,6 @@ import (
 	"TouchySarun/chp_order_backend/internal/models"
 	"context"
 	"fmt"
-	"log"
 	"reflect"
 
 	defFirestore "cloud.google.com/go/firestore"
@@ -18,12 +17,12 @@ const usersCollection = "users"
 func GetUser(ctx context.Context, userID string) (*models.User, error) {
 	doc, err := firestore.Client.Collection("users").Doc(userID).Get(ctx)
 	if err != nil {
-		log.Fatalf("Failed, get data from firestore: %v", err)
+		fmt.Printf("Failed, get data from firestore: %v", err)
 		return nil, err
 	}
 	var user models.User
 	if err := doc.DataTo(&user); err != nil {
-		log.Fatalf("Failed, convert useData to user: %v", err)
+		fmt.Printf("Failed, convert useData to user: %v", err)
 		return nil, err
 	}
 	user.Id = userID
@@ -40,12 +39,12 @@ func GetUserByUsername(ctx context.Context, username string) (*models.User, erro
 		if err == iterator.Done {
 			break
 		} else if err != nil {
-			log.Fatalf("Failed, Get user from firestore: %v",err)
+			fmt.Printf("Failed, Get user from firestore: %v",err)
 			return nil, err
 		}
 		var user models.User
 		if err := doc.DataTo(&user); err != nil {
-			log.Fatalf("Failed, convert useData to user: %v", err)
+			fmt.Printf("Failed, convert useData to user: %v", err)
 			return nil, err
 		}
 		user.Id = doc.Ref.ID
@@ -56,7 +55,7 @@ func GetUserByUsername(ctx context.Context, username string) (*models.User, erro
 		users = append(users, user)
 	}
 	if len(users) == 0 {
-		log.Fatalf("User not found: %v", username)
+		fmt.Printf("User not found: %v", username)
 		return nil, fmt.Errorf("user not found: %v", username)
 	}
 	return &users[0], nil

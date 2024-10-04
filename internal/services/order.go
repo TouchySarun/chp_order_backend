@@ -5,7 +5,6 @@ import (
 	"TouchySarun/chp_order_backend/internal/models"
 	"context"
 	"fmt"
-	"log"
 	"reflect"
 	"time"
 
@@ -50,11 +49,11 @@ func GetOrder(ctx context.Context, id string) (*models.Order, error) {
 	var order models.Order
 	doc ,err := firestore.Client.Collection(ordersCollection).Doc(id).Get(ctx)
 	if err != nil {
-		log.Fatalf("Failed, Getting order: %v", err)
+		fmt.Printf("Failed, Getting order: %v", err)
 		return nil, err
 	}
 	if err := doc.DataTo(&order); err != nil {
-		log.Fatalf("Failed, convert orderData to order: %v", err)
+		fmt.Printf("Failed, convert orderData to order: %v", err)
 		return nil, err
 	}
 	order.Id = &doc.Ref.ID
@@ -100,19 +99,19 @@ func GetSkuByBarcode(ctx context.Context, barcode string) (*models.Sku, error) {
 			break
 		}
 		if err != nil {
-			log.Fatalf("Failed, Get sku from firestore: %v",err)
+			fmt.Printf("Failed, Get sku from firestore: %v",err)
 			return nil, err
 		}
 		var sku models.Sku
 		if err := doc.DataTo(&sku); err != nil {
-			log.Fatalf("Failed, convert skuData to sku: %v", err)
+			fmt.Printf("Failed, convert skuData to sku: %v", err)
 			return nil, err
 		}
 		sku.Id = &doc.Ref.ID
 		skus = append(skus, sku)
 	}
 	if len(skus) == 0 {
-		log.Fatalf("Barcode not found: %v", barcode)
+		fmt.Printf("Barcode not found: %v", barcode)
 		return nil, fmt.Errorf("barcode not found: %v", barcode)
 	}
 	return &skus[0], nil
@@ -120,7 +119,7 @@ func GetSkuByBarcode(ctx context.Context, barcode string) (*models.Sku, error) {
 
 func GetLatestOrder(ctx context.Context, skuId string, branch string) (*models.Order, error) {
 	var orders []models.Order
-	query := firestore.Client.Collection(ordersCollection).Where("leftQty", ">", 0).Where("sku", "==", skuId)
+	query := firestore.Client.Collection(ordersCollection).Where("leftQty", ">", 0).Where("sku", "==", skuId).Where("branch", "==", branch)
 	iter := query.Documents(ctx)
 	for {
 		doc, err := iter.Next()
@@ -128,11 +127,11 @@ func GetLatestOrder(ctx context.Context, skuId string, branch string) (*models.O
 			break
 		}
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed getting data from iter \n%v", err)
 		}
 		var order models.Order
 		if err := doc.DataTo(&order); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed convert data to order : %v \n%v", order, err)
 		}
 		order.Id = &doc.Ref.ID
 		orders = append(orders, order)
