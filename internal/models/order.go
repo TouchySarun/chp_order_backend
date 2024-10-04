@@ -23,7 +23,7 @@ type Sku struct {
 type Goods struct {
 	Code string	`firestore:"code" json:"code"`
 	UtqName string	`firestore:"utqName" json:"utqName"`
-	UtqQty string	`firestore:"utqQty" json:"utqQty"`
+	UtqQty int	`firestore:"utqQty" json:"utqQty"`
 	Price0 string	`firestore:"price0" json:"price0"`
 	Prict8 string	`firestore:"prict8" json:"price8"`
 }
@@ -59,17 +59,17 @@ type OrderHistory struct {
 }
 
 type OrderCreateReqeust struct {
+	Ap string `json:"ap"`
+	Bnd string `json:"bnd"`
 	Branch string `json:"branch"`
+	Cat string `json:"cat"`
+	Code string `json:"code"`
+	CreBy string `json:"creBy"`
 	Name string `json:"name"`
+	Qty int `json:"qty"`
+	Sku string `json:"sku"`
 	UtqName string `json:"utqName"`
 	UtqQty int `json:"utqQty"`
-	Code string `json:"code"`
-	Sku string `json:"sku"`
-	Ap string `json:"ap"`
-	Qty int `json:"qty"`
-	Cat string `json:"cat"`
-	Bnd string `json:"bnd"`
-	CreBy string `json:"creBy"`
 }
 
 type OrderEditRequest struct {
