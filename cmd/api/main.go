@@ -28,6 +28,7 @@ func registerRoutes(router *mux.Router) {
 	router.HandleFunc("/api/shipping", handlers.CreateShipping).Methods("POST") // Create temp shipping {orderId, qty, branch} // qty = dif then all is edit
 	router.HandleFunc("/api/shipping/confirm", handlers.ConfirmShipping).Methods("POST") // Confirm shipping {branch, creBy}
 	router.HandleFunc("/api/shipping/{branch}/{limit}/{page}", handlers.GetShipping).Methods("GET") // Get temp shipping // qty = sum of all orderId
+	router.HandleFunc("/setup/skus", handlers.CreateSkus).Methods("POST") // Create sku from csv file
 }
 
 //TODO: limit, offset = params or query
