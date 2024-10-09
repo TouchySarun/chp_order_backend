@@ -15,11 +15,18 @@ func WriteResponseSuccess (w *http.ResponseWriter, body any) {
 	}
 }
 
-func WriteResponseErr (w *http.ResponseWriter, message string, statusCode int) {
+func WriteResponseErr(w *http.ResponseWriter, message string, statusCode ...int) {
 	writer := *w
 	writer.Header().Set("Content-Type", "application/json")
-	writer.WriteHeader(statusCode)
-	errResponse := map[string]string{"error":message}
+
+	// Set status code if provided, otherwise use default value
+	code := http.StatusInternalServerError
+	if len(statusCode) > 0 {
+		code = statusCode[0]
+	}
+	writer.WriteHeader(code)
+
+	errResponse := map[string]string{"error": message}
 	if err := json.NewEncoder(writer).Encode(errResponse); err != nil {
 		http.Error(writer, "Failed to encode response", http.StatusInternalServerError)
 	}
