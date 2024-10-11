@@ -6,6 +6,9 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"slices"
+	"sort"
+	"strings"
 	"time"
 
 	defFirestore "cloud.google.com/go/firestore"
@@ -260,36 +263,59 @@ func MakeOrderUpdateField (req models.OrderEditRequest) (*map[string]interface{}
 	updatedFields["lstUpd"] = time.Now()
 	return &updatedFields, nil
 }
-
-func MakeGetOrderQuery(q map[string]string) defFirestore.Query {
-	query := firestore.Client.Collection(ordersCollection).Where("leftQty", ">", 0)
-	// Apply each filter conditionally
-	if len(q) > 0 {
-		for field, value := range q {
-			if value != "" {
-				fmt.Printf("Add %v == %v to the query\n", field, value)
-				query = query.Where(field, "==", value)
-			}
-		}
-	}
+func MakeGetOrderQuery(branch []string, status []string) defFirestore.Query {
+	fmt.Printf("create query with \nbranch: %v, \nstatus: %v\n",branch, status)
+	query := firestore.Client.Collection(ordersCollection).Where("leftQty", ">", 0).Where("branch", "in", branch).Where("status","in", status)
 	return query
 }
-
-func GetOrders(ctx context.Context, q map[string]string, code string, limit int, page int) (*[]models.Order, error){
-	var orders []models.Order
-	offset := (page-1)*limit
-	var query = MakeGetOrderQuery(q)
-	if code != "" {
-		sku, err := GetSkuByBarcode(ctx, code)
-		if err != nil {
-			return nil, err
-		}
-		query = query.Where("code","in", sku.Barcodes)
+func FilterOrderStringMatch(orders []models.Order, mode string, match string) []models.Order {
+	matches := strings.Split(match, " ")
+	if matches[0] == "" {
+		return orders
 	}
-	query = query.OrderBy("startDate", defFirestore.Desc).Limit(limit).Offset(offset)
+	resOrder := make([]models.Order, 0)
+	for _, o := range orders {
+		val := reflect.ValueOf(o).FieldByName(mode).String()
+		isAllMatch := true
+		// if any of m dosn't match return false
+		for _, m := range matches {
+			isAllMatch = strings.Contains(val, m)
+		}
+		if isAllMatch {
+			resOrder = append(resOrder, o)
+		}
+	}
+	return resOrder
+}
+func filterOrderStringEqual(orders []models.Order, mode string, equal string) []models.Order {
+	resOrder := make([]models.Order, 0)
+	for _, o := range orders {
+		val := reflect.ValueOf(o).FieldByName(mode).String()
+		if val == equal {
+			resOrder = append(resOrder, o)
+		}
+	}
+	return resOrder
+}
+func filterArrayContain(orders []models.Order, mode string, match []string) []models.Order {
+	resOrder := make([]models.Order, 0)
+	for _, o := range orders {
+		val := reflect.ValueOf(o).FieldByName(mode).String()
+		if slices.Contains(match, val) {
+			resOrder = append(resOrder, o)
+		}
+	}
+	return resOrder
+}
+
+func GetOrders(ctx context.Context, q models.OrderQuery) (*[]models.Order, error){
+	var orders []models.Order
+	var query = MakeGetOrderQuery(q.Branch, q.Status)
+	query = query.OrderBy("startDate", defFirestore.Desc)
 	docs, err := query.Documents(ctx).GetAll()
 	if err != nil {
-		return nil, err
+		fmt.Printf("fail get orders %v\n",err)
+		return nil, fmt.Errorf("failed get orders from firestore, %v",err)
 	}
 	for _, doc := range docs {
 		var order models.Order 
@@ -297,13 +323,54 @@ func GetOrders(ctx context.Context, q map[string]string, code string, limit int,
 			order.Id = &doc.Ref.ID
 			order.History = &[]models.OrderHistory{}
 			orders = append(orders, order)
+		}else {
+			return nil, fmt.Errorf("failed convert orderData to order, %v", err)
 		}
 	}
+	fmt.Printf("success get orders: [%v], start filtering\n", len(orders))
+	if q.Ap != "" {
+		fmt.Printf("filter Ap: %v\n",q.Ap)
+		orders = FilterOrderStringMatch(orders, "Ap", q.Ap)
+		fmt.Printf("complete filter Ap: [%v]\n", len(orders))
+	}
+	if len(q.ApContain) > 0 {
+		fmt.Printf("filter Ap Contain: %v\n", q.ApContain)
+		orders = filterArrayContain(orders,"ApContain", q.ApContain)
+		fmt.Printf("complete filter Ap Contain: [%v]\n", len(orders))
+	}
+	if q.Bnd != "" {
+		fmt.Printf("filter Bnd: %v\n",q.Bnd)
+		orders = FilterOrderStringMatch(orders, "Bnd", q.Bnd)
+		fmt.Printf("complete filter Bnd: [%v]\n", len(orders))
+	}
+	// branch is already query
+	if len(q.Code) > 0 {
+		fmt.Printf("filter Code: %v\n",q.Code)
+		orders = filterArrayContain(orders,"Code", q.Code)
+		fmt.Printf("complete filter Code: [%v]\n", len(orders))
+	}
+	if q.CreBy != "" {
+		fmt.Printf("filter CreBy: %v\n",q.CreBy)
+		orders = filterOrderStringEqual(orders, "CreBy", q.CreBy)
+		fmt.Printf("complete filter CreBy: [%v]\n", len(orders))
+	}
+	// rack was remove
+	if q.Search != "" {
+		fmt.Printf("filter Search: %v\n", q.Search)
+		matchName := FilterOrderStringMatch(orders, "Name", q.Search)
+		matchCode := FilterOrderStringMatch(orders, "Code", q.Search)
+		orders = Union(matchName, matchCode)
+		fmt.Printf("complete filter Search: [%v]\n", len(orders))
+	}
+	fmt.Printf("complete filter: [%v]\n", len(orders))
+	// status is already query
+	// parts := strings.Split(q.OrderBy, "_")
+	// sortBy, mode := parts[0], strings.ToLower(parts[1])
+	// SortOrders(orders, sortBy, mode)
+	// orders = ApplyLimitAndOffset(orders, q.Limit, q.Offset)
 	return &orders, nil
 }
-
 func UpdateStatus(ctx context.Context, id string, status string, qty int, creBy string) (*string, error){
-
 	var updatedFields = map[string]interface{}{"lstUpd":time.Now()}
 	order, oerr := GetOrder(ctx, id)
 	if oerr != nil {
@@ -373,4 +440,31 @@ func UpdateStatus(ctx context.Context, id string, status string, qty int, creBy 
 		return &res, nil
 	}
 
+}
+
+func SortOrders(orders []models.Order, sortBy string, mode string) {
+	switch sortBy {
+	case "name":
+		if mode == "asc" {
+			sort.Slice(orders, func(i, j int) bool {
+				return strings.ToLower(orders[i].Name) < strings.ToLower(orders[j].Name)
+			})
+		} else if mode == "desc" {
+			sort.Slice(orders, func(i, j int) bool {
+				return strings.ToLower(orders[i].Name) > strings.ToLower(orders[j].Name)
+			})
+		}
+	case "code":
+		if mode == "asc" {
+			sort.Slice(orders, func(i, j int) bool {
+				return strings.ToLower(orders[i].Code) < strings.ToLower(orders[j].Code)
+			})
+		} else if mode == "desc" {
+			sort.Slice(orders, func(i, j int) bool {
+				return strings.ToLower(orders[i].Code) > strings.ToLower(orders[j].Code)
+			})
+		}
+	default:
+		fmt.Println("Invalid sortBy parameter. Please use 'name' or 'code'.")
+	}
 }

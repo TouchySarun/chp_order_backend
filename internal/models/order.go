@@ -28,24 +28,24 @@ type Goods struct {
 	Prict8 string	`firestore:"prict8" json:"price8"`
 }
 type Order struct {
-	Id	*string `json:"id"`
-	Branch string	`firestore:"branch" json:"branch"`
-	Name string	`firestore:"name" json:"name"`
-	UtqName string	`firestore:"utqName" json:"utqName"`
-	UtqQty int	`firestore:"utqQty" json:"utqQty"`
-	Code string	`firestore:"code" json:"code"`
-	Sku string	`firestore:"sku" json:"sku"`
-	Ap string	`firestore:"ap" json:"ap"`
-	Qty int	`firestore:"qty" json:"qty"`
-	LeftQty int	`firestore:"leftQty" json:"leftQty"`
-	Cat string	`firestore:"cat" json:"cat"`
-	Bnd string	`firestore:"bnd" json:"bnd"`
-	CreBy string	`firestore:"creBy" json:"creBy"`
-	StartDate time.Time	`firestore:"startDate" json:"startDate"`
-	EndDate 	*time.Time `firestore:"endDate" json:"endDate,omitempty"`
-	Status string	`firestore:"status" json:"status"`
-	LstUpd *time.Time `firestore:"lstUpd" json:"lstUpd,omitempty"`
-	History *[]OrderHistory `firestore:"history" json:"history,omitempty"`
+	Id        *string    `json:"id"`
+	Branch    string     `firestore:"branch" json:"branch"`
+	Name      string     `firestore:"name" json:"name"`
+	UtqName   string     `firestore:"utqName" json:"utqName"`
+	UtqQty    int        `firestore:"utqQty" json:"utqQty"`
+	Code      string     `firestore:"code" json:"code"`
+	Sku       string     `firestore:"sku" json:"sku"`
+	Ap        string     `firestore:"ap" json:"ap"`
+	Qty       int        `firestore:"qty" json:"qty"`
+	LeftQty   int        `firestore:"leftQty" json:"leftQty"`
+	Cat       string     `firestore:"cat" json:"cat"`
+	Bnd       string     `firestore:"bnd" json:"bnd"`
+	CreBy     string     `firestore:"creBy" json:"creBy"`
+	StartDate time.Time  `firestore:"startDate" json:"startDate"`
+	EndDate   *time.Time `firestore:"endDate" json:"endDate,omitempty"`
+	Status    string     `firestore:"status" json:"status"`
+	LstUpd    *time.Time `firestore:"lstUpd" json:"lstUpd,omitempty"`
+	History   *[]OrderHistory `firestore:"history" json:"history,omitempty"`
 }
 type OrderHistory struct {
 	Status string `firestore:"status" json:"status"`
@@ -85,4 +85,19 @@ type OrderUpdateStatusRequest struct {
 	Status string `json:"status"`
 	CreBy string `json:"creBy"`
 	Qty int `json:"qty"`
+}
+
+type OrderQuery struct {
+	Ap string `json:"ap"`
+	ApContain []string `json:"aps"`
+	Bnd string `json:"bnd"`
+	Branch []string `json:"branch"`
+	Code []string `json:"code"`
+	CreBy string `json:"creBy"`
+	Rack string `json:"rack"`
+	Search string `json:"search"`
+	Status []string `json:"status"`
+	Limit int `json:"limit"`
+	Offset int `json:"offset"`
+	OrderBy string `json:"orderBy"`
 }

@@ -3,6 +3,7 @@ package handlers
 import (
 	"TouchySarun/chp_order_backend/internal/models"
 	"TouchySarun/chp_order_backend/internal/services"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -141,34 +142,84 @@ func EditOrder(w http.ResponseWriter, r *http.Request) {
 	}
 	services.WriteResponseSuccess(&w, "Success")
 }
-
-func GetOrders(w http.ResponseWriter, r *http.Request) {
-	// Required query parameters
+func validateGetOrdersInput(ctx context.Context, r *http.Request) (models.OrderQuery, int, error) {
+	
+	query := models.OrderQuery{
+		CreBy		: r.URL.Query().Get("creBy"),
+		Rack		: r.URL.Query().Get("rack"),
+		Status 	: r.URL.Query()["status"], // Parse as []string
+		Ap 			: r.URL.Query().Get("ap"),
+		Bnd 		:	r.URL.Query().Get("bnd"),
+		Search	: r.URL.Query().Get("search"),
+		OrderBy	: r.URL.Query().Get("orderBy"),
+	}
 	limitStr := r.URL.Query().Get("limit")
 	pageStr := r.URL.Query().Get("page")
-	ctx := r.Context()
+	if query.OrderBy == "" {
+		return query, http.StatusBadRequest, fmt.Errorf("missing 'order by' parameter")
+	}
 	// Convert 'limit' and 'page' to integers
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
-		http.Error(w, "Invalid or missing 'limit' parameter", http.StatusBadRequest)
-		return
+		query.Limit = limit
+		return query, http.StatusBadRequest, fmt.Errorf("invalid or missing 'limit' parameter")
 	}
 	page, err := strconv.Atoi(pageStr)
 	if err != nil || page <= 0 {
-		http.Error(w, "Invalid or missing 'page' parameter", http.StatusBadRequest)
-		return
+		query.Offset = (page-1)*limit
+		return query, http.StatusBadRequest, fmt.Errorf("invalid or missing 'page' parameter")
 	}
-	fieldConditions := map[string]string{
-		"status": r.URL.Query().Get("status"),
-		"creBy":  r.URL.Query().Get("creBy"),
-		"ap":     r.URL.Query().Get("ap"),
-		"rack":   r.URL.Query().Get("rack"),
-		"branch": r.URL.Query().Get("code"),
+	// check branch if no branch input set to get all branches
+	branch := r.URL.Query()["branch"];
+	if len(branch) == 0 {
+		b, _ := services.GetBranches(ctx)
+		branch = *b
 	}
+	query.Branch = branch
+	// check username, get aps
+	aps := make([]string, 0)
+	username := r.URL.Query().Get("username")
+	if username != "" {
+		user, err := services.GetUserByUsername(ctx, username)
+		if err != nil {
+			return query, http.StatusInternalServerError, err
+		}
+		rack := user.Rack
+		resAps, err := services.GetApsByRack(ctx, rack)
+		if err != nil {
+			return query, http.StatusInternalServerError, err
+		}
+		for _, ap := range(*resAps) {
+			aps = append(aps, ap.Code)
+		}
+	}
+	if len(aps)>0{
+		query.ApContain = aps
+	}
+	// check code, get codes
 	code := r.URL.Query().Get("code")
-	orders, err := services.GetOrders(ctx, fieldConditions, code,limit, page)
+	if code != "" {
+		sku, err := services.GetSkuByBarcode(ctx, code)
+		if err != nil {
+			return query, http.StatusInternalServerError, err
+		}
+		query.Code = sku.Barcodes
+	}
+	return query, http.StatusOK, nil
+}
+
+func GetOrders(w http.ResponseWriter, r *http.Request) {
+	// TODO: return count all(no filter, with filter)
+	ctx := r.Context()
+	query, status, err := validateGetOrdersInput(ctx, r)
+	if err != nil {
+		services.WriteResponseErr(&w, err.Error(), status)
+		return;
+	}
+	orders, err := services.GetOrders(ctx, query)
 	if err != nil {
 		services.WriteResponseErr(&w, fmt.Sprintf("Failed, Getting orders, %v",err),http.StatusInternalServerError)
+		return;
 	}
 	services.WriteResponseSuccess(&w,orders)
 }

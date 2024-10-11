@@ -1,2 +1,3 @@
 **/firebase-adminsdk.*
 **/*.csv
+.vscode
