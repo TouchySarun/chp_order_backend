@@ -89,6 +89,7 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 		Bnd:       req.Bnd,
 		CreBy:     req.CreBy,
 		StartDate: time.Now(),
+		LstUpd:    time.Now().Add(-24*time.Hour),// default value = yesterday (for create then picking in same day)
 		Status:    "init",
 	}
 	orderHistory := models.OrderHistory{
@@ -150,6 +151,7 @@ func validateGetOrdersInput(ctx context.Context, r *http.Request) (models.OrderQ
 		Status 	: r.URL.Query()["status"], // Parse as []string
 		Ap 			: r.URL.Query().Get("ap"),
 		Bnd 		:	r.URL.Query().Get("bnd"),
+		Branch	: r.URL.Query()["branch"],
 		Search	: r.URL.Query().Get("search"),
 		OrderBy	: r.URL.Query().Get("orderBy"),
 	}
@@ -169,13 +171,6 @@ func validateGetOrdersInput(ctx context.Context, r *http.Request) (models.OrderQ
 		query.Offset = (page-1)*limit
 		return query, http.StatusBadRequest, fmt.Errorf("invalid or missing 'page' parameter")
 	}
-	// check branch if no branch input set to get all branches
-	branch := r.URL.Query()["branch"];
-	if len(branch) == 0 {
-		b, _ := services.GetBranches(ctx)
-		branch = *b
-	}
-	query.Branch = branch
 	// check username, get aps
 	aps := make([]string, 0)
 	username := r.URL.Query().Get("username")
@@ -208,20 +203,19 @@ func validateGetOrdersInput(ctx context.Context, r *http.Request) (models.OrderQ
 	return query, http.StatusOK, nil
 }
 
-func GetOrders(w http.ResponseWriter, r *http.Request) {
-	// TODO: return count all(no filter, with filter)
+func GetOrdersForPicking(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	query, status, err := validateGetOrdersInput(ctx, r)
 	if err != nil {
 		services.WriteResponseErr(&w, err.Error(), status)
 		return;
 	}
-	orders, err := services.GetOrders(ctx, query)
+	orders,totalOrders, totalOrdersBeforePagination, err := services.GetOrdersForPicking(ctx, query)
 	if err != nil {
 		services.WriteResponseErr(&w, fmt.Sprintf("Failed, Getting orders, %v",err),http.StatusInternalServerError)
 		return;
 	}
-	services.WriteResponseSuccess(&w,orders)
+	services.WriteResponseSuccess(&w, map[string]interface{}{"orders":orders, "totalOrders":totalOrders, "totalOrdersBeforePagination":totalOrdersBeforePagination})
 }
 
 func UpdateStatus(w http.ResponseWriter, r *http.Request) {

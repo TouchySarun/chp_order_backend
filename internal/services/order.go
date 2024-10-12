@@ -263,9 +263,10 @@ func MakeOrderUpdateField (req models.OrderEditRequest) (*map[string]interface{}
 	updatedFields["lstUpd"] = time.Now()
 	return &updatedFields, nil
 }
-func MakeGetOrderQuery(branch []string, status []string) defFirestore.Query {
-	fmt.Printf("create query with \nbranch: %v, \nstatus: %v\n",branch, status)
-	query := firestore.Client.Collection(ordersCollection).Where("leftQty", ">", 0).Where("branch", "in", branch).Where("status","in", status)
+func MakeBaseQueryForOrderPicking(status []string) defFirestore.Query {
+	fmt.Printf("create base query with status: %v\n", status)
+	today := time.Now().Truncate(24 * time.Hour)
+	query := firestore.Client.Collection(ordersCollection).Where("leftQty", ">", 0).Where("status","in", status).Where("lstUpd", "<", today)
 	return query
 }
 func FilterOrderStringMatch(orders []models.Order, mode string, match string) []models.Order {
@@ -307,15 +308,23 @@ func filterArrayContain(orders []models.Order, mode string, match []string) []mo
 	}
 	return resOrder
 }
-
-func GetOrders(ctx context.Context, q models.OrderQuery) (*[]models.Order, error){
+/**
+* Get Orders For Picking
+* @param q
+* @return 1. orders:*[]models.Order
+* @return 2. total orders: int
+* @return 3. total orders before pagination: int
+*/
+func GetOrdersForPicking(ctx context.Context, q models.OrderQuery) (*[]models.Order, int, int, error){
 	var orders []models.Order
-	var query = MakeGetOrderQuery(q.Branch, q.Status)
-	query = query.OrderBy("startDate", defFirestore.Desc)
+	var query = MakeBaseQueryForOrderPicking(q.Status)
+	var totalOrders int
+	var totalOrdersBeforePagination int
+	// get all orders (no filter, limit, offset, orderBy)
 	docs, err := query.Documents(ctx).GetAll()
 	if err != nil {
 		fmt.Printf("fail get orders %v\n",err)
-		return nil, fmt.Errorf("failed get orders from firestore, %v",err)
+		return nil,0 ,0 , fmt.Errorf("failed get orders from firestore, %v",err)
 	}
 	for _, doc := range docs {
 		var order models.Order 
@@ -324,9 +333,10 @@ func GetOrders(ctx context.Context, q models.OrderQuery) (*[]models.Order, error
 			order.History = &[]models.OrderHistory{}
 			orders = append(orders, order)
 		}else {
-			return nil, fmt.Errorf("failed convert orderData to order, %v", err)
+			return nil,0 ,0 , fmt.Errorf("failed convert orderData to order, %v", err)
 		}
 	}
+	totalOrders = len(orders)
 	fmt.Printf("success get orders: [%v], start filtering\n", len(orders))
 	if q.Ap != "" {
 		fmt.Printf("filter Ap: %v\n",q.Ap)
@@ -343,7 +353,11 @@ func GetOrders(ctx context.Context, q models.OrderQuery) (*[]models.Order, error
 		orders = FilterOrderStringMatch(orders, "Bnd", q.Bnd)
 		fmt.Printf("complete filter Bnd: [%v]\n", len(orders))
 	}
-	// branch is already query
+	if len(q.Branch) > 0 {
+		fmt.Printf("filter Branch: %v\n",q.Branch)
+		orders = filterArrayContain(orders,"Branch", q.Branch)
+		fmt.Printf("complete filter Branch: [%v]\n", len(orders))
+	}
 	if len(q.Code) > 0 {
 		fmt.Printf("filter Code: %v\n",q.Code)
 		orders = filterArrayContain(orders,"Code", q.Code)
@@ -364,11 +378,12 @@ func GetOrders(ctx context.Context, q models.OrderQuery) (*[]models.Order, error
 	}
 	fmt.Printf("complete filter: [%v]\n", len(orders))
 	// status is already query
-	// parts := strings.Split(q.OrderBy, "_")
-	// sortBy, mode := parts[0], strings.ToLower(parts[1])
-	// SortOrders(orders, sortBy, mode)
+	totalOrdersBeforePagination = len(orders)
+	parts := strings.Split(q.OrderBy, "_")
+	sortBy, mode := parts[0], strings.ToLower(parts[1])
+	SortOrders(orders, sortBy, mode)
 	// orders = ApplyLimitAndOffset(orders, q.Limit, q.Offset)
-	return &orders, nil
+	return &orders, totalOrders, totalOrdersBeforePagination, nil
 }
 func UpdateStatus(ctx context.Context, id string, status string, qty int, creBy string) (*string, error){
 	var updatedFields = map[string]interface{}{"lstUpd":time.Now()}

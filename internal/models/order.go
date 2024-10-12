@@ -44,7 +44,7 @@ type Order struct {
 	StartDate time.Time  `firestore:"startDate" json:"startDate"`
 	EndDate   *time.Time `firestore:"endDate" json:"endDate,omitempty"`
 	Status    string     `firestore:"status" json:"status"`
-	LstUpd    *time.Time `firestore:"lstUpd" json:"lstUpd,omitempty"`
+	LstUpd    time.Time `firestore:"lstUpd" json:"lstUpd,omitempty"`
 	History   *[]OrderHistory `firestore:"history" json:"history,omitempty"`
 }
 type OrderHistory struct {
